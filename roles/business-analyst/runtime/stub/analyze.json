@@ -1,0 +1,5 @@
+{
+  "status": "completed",
+  "summary": "stub: требования и критерии приёмки для задачи {{task_id}} записаны",
+  "refs": ["url:https://hmb.atlassian.net/stub/requirements-{{task_id}}"]
+}

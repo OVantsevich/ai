@@ -1,0 +1,16 @@
+id: business-analyst
+summary: Turns a task into requirements and acceptance criteria in Jira or Confluence
+commands:
+  - name: analyze
+    description: Write requirements and acceptance criteria for the task
+approvals:
+  - action: confluence.publish
+    description: Publish or change a Confluence page
+  - action: jira.create_issue
+    description: Create Jira issues
+runtime:
+  engine: stub
+limits:
+  timeout: 30m
+workspace:
+  clone: false

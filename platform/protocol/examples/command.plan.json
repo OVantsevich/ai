@@ -11,6 +11,19 @@
       "text": "При отказе провайдера сервис онлайн-платежей возвращает общий код 500. Нужно возвращать код и сообщение провайдера в теле ответа.",
       "refs": ["jira:PAT-42"],
       "created_at": "2026-09-28T09:00:00+03:00"
-    }
+    },
+    "roles": [
+      {
+        "id": "go-developer",
+        "summary": "Implements Go changes with tests in a branch and opens a merge request",
+        "commands": [{ "name": "implement" }, { "name": "fix" }],
+        "approvals": [{ "action": "gitlab.create_mr" }]
+      },
+      {
+        "id": "qa-engineer",
+        "commands": [{ "name": "verify" }],
+        "approvals": [{ "action": "jira.create_bug" }]
+      }
+    ]
   }
 }

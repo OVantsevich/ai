@@ -1,0 +1,14 @@
+id: coordinator
+summary: Builds and revises the execution plan for a task
+commands:
+  - name: plan
+    description: Build the first plan for a task
+  - name: replan
+    description: Revise the plan after blocked or failed steps, rejection or new information
+approvals: []
+runtime:
+  engine: stub
+limits:
+  timeout: 15m
+workspace:
+  clone: false

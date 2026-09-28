@@ -36,6 +36,20 @@ Run `make help` for all commands.
 | `platform/deploy/` | docker-compose, environment example, Grafana provisioning, PostgreSQL schema (`postgres/init/`) |
 | `data/` | Local runtime data, not tracked: `memory/` (clone of `ai-memory`), `workspaces/`, `logs/` |
 
+## Roles
+
+Each role runs as container `role-<id>` (`http://role-<id>:9000`, API in [platform/worker/README.md](platform/worker/README.md)). The role directory is mounted read-only at `/role`, so changes apply on the next run without a rebuild.
+
+| Path in `roles/<id>/` | Purpose |
+|---|---|
+| `role.yaml` | id, summary, commands, approvals, engine, limits, clone of repositories |
+| `instructions/`, `rules/`, `skills/` | what the agent receives |
+| `tools/mcp.yaml` | MCP servers; `${VAR}` is taken from the container environment |
+| `runtime/Dockerfile` | image `FROM ai-worker-base` plus the role's CLI tools |
+| `runtime/stub/<command>.json` | result of the `stub` engine for a command |
+
+A role is enabled by its service in `platform/deploy/docker-compose.yaml`; the orchestrator builds the role catalog for the coordinator from `GET /role`.
+
 ## Repositories and connections
 
 | What | Where |

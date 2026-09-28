@@ -11,4 +11,9 @@ if [ -n "${GITLAB_URL:-}" ] && [ -n "${GITLAB_TOKEN:-}" ]; then
   git config --global "http.${GITLAB_URL%/}/.extraHeader" "Authorization: Basic $auth"
 fi
 
+if [ -n "${ATLASSIAN_EMAIL:-}" ] && [ -n "${ATLASSIAN_API_TOKEN:-}" ]; then
+  ATLASSIAN_BASIC_AUTH=$(printf '%s:%s' "$ATLASSIAN_EMAIL" "$ATLASSIAN_API_TOKEN" | base64 | tr -d '\n')
+  export ATLASSIAN_BASIC_AUTH
+fi
+
 exec python /opt/worker/worker.py

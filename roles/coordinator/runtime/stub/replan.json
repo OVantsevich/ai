@@ -1,0 +1,33 @@
+{
+  "status": "completed",
+  "summary": "stub: план пересобран, добавлен шаг уточнения",
+  "plan": {
+    "task_id": "{{task_id}}",
+    "version": 2,
+    "basis": "playbooks/feature.md",
+    "reason": "stub: шаг заблокирован, добавлено уточнение требований перед повтором",
+    "steps": [
+      {
+        "id": "clarify",
+        "type": "human_approval",
+        "text": "Ответить на вопросы роли и подтвердить продолжение."
+      },
+      {
+        "id": "implement",
+        "type": "role",
+        "role": "go-developer",
+        "command": "implement",
+        "text": "Реализовать изменения с учётом ответов и открыть MR.",
+        "after": ["clarify"]
+      },
+      {
+        "id": "verify",
+        "type": "role",
+        "role": "qa-engineer",
+        "command": "verify",
+        "text": "Проверить MR по критериям приёмки.",
+        "after": ["implement"]
+      }
+    ]
+  }
+}

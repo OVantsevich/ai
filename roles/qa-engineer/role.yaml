@@ -1,0 +1,14 @@
+id: qa-engineer
+summary: Verifies a merge request against acceptance criteria and reports defects
+commands:
+  - name: verify
+    description: Check a merge request against acceptance criteria and comment the result
+approvals:
+  - action: jira.create_bug
+    description: Create bug issues in Jira
+runtime:
+  engine: stub
+limits:
+  timeout: 1h
+workspace:
+  clone: true

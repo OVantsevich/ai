@@ -1,0 +1,20 @@
+id: go-developer
+summary: Implements Go changes with tests in a branch and opens a merge request
+commands:
+  - name: implement
+    description: Implement a feature or change and open a merge request
+  - name: fix
+    description: Fix a bug or review findings in an existing branch or merge request
+approvals:
+  - action: gitlab.create_mr
+    description: Open a merge request
+  - action: deps.add
+    description: Add or upgrade a dependency
+  - action: migrations.change
+    description: Add or change database migrations
+runtime:
+  engine: stub
+limits:
+  timeout: 1h
+workspace:
+  clone: true

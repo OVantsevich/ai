@@ -1,0 +1,5 @@
+{
+  "status": "completed",
+  "summary": "stub: изменения для задачи {{task_id}} реализованы, MR открыт",
+  "refs": ["url:https://gitlab.hamkorbank.uz/stub/merge_requests/{{task_id}}"]
+}

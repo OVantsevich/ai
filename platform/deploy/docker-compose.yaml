@@ -1,6 +1,73 @@
 name: ai
 
+x-role: &role
+  restart: unless-stopped
+  environment:
+    - TZ=${TZ}
+    - GITLAB_URL=${GITLAB_URL}
+    - GITLAB_TOKEN=${GITLAB_TOKEN}
+    - GITLAB_MCP_AUTH_TOKEN=${GITLAB_MCP_AUTH_TOKEN}
+    - ATLASSIAN_SITE=${ATLASSIAN_SITE}
+    - ATLASSIAN_EMAIL=${ATLASSIAN_EMAIL}
+    - ATLASSIAN_API_TOKEN=${ATLASSIAN_API_TOKEN}
+    - GIT_WORK_NAME=${GIT_WORK_NAME}
+    - GIT_WORK_EMAIL=${GIT_WORK_EMAIL}
+    - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health', timeout=3)"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+  depends_on:
+    postgres:
+      condition: service_healthy
+
 services:
+  role-coordinator:
+    <<: *role
+    build: ../../roles/coordinator/runtime
+    image: ai-role-coordinator:latest
+    container_name: ai-role-coordinator
+    volumes:
+      - ../../roles/coordinator:/role:ro
+      - ../../playbooks:/playbooks:ro
+      - ../../data/memory/coordinator:/memory
+      - ../../data/workspaces/coordinator:/workspaces
+      - ../../data/logs/coordinator:/logs
+
+  role-business-analyst:
+    <<: *role
+    build: ../../roles/business-analyst/runtime
+    image: ai-role-business-analyst:latest
+    container_name: ai-role-business-analyst
+    volumes:
+      - ../../roles/business-analyst:/role:ro
+      - ../../data/memory/business-analyst:/memory
+      - ../../data/workspaces/business-analyst:/workspaces
+      - ../../data/logs/business-analyst:/logs
+
+  role-go-developer:
+    <<: *role
+    build: ../../roles/go-developer/runtime
+    image: ai-role-go-developer:latest
+    container_name: ai-role-go-developer
+    volumes:
+      - ../../roles/go-developer:/role:ro
+      - ../../data/memory/go-developer:/memory
+      - ../../data/workspaces/go-developer:/workspaces
+      - ../../data/logs/go-developer:/logs
+
+  role-qa-engineer:
+    <<: *role
+    build: ../../roles/qa-engineer/runtime
+    image: ai-role-qa-engineer:latest
+    container_name: ai-role-qa-engineer
+    volumes:
+      - ../../roles/qa-engineer:/role:ro
+      - ../../data/memory/qa-engineer:/memory
+      - ../../data/workspaces/qa-engineer:/workspaces
+      - ../../data/logs/qa-engineer:/logs
+
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     container_name: n8n

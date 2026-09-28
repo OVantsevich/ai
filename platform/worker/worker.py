@@ -1,6 +1,7 @@
 """Role worker HTTP API. Executes one run at a time.
 
 GET  /health          role id, engine, current run
+GET  /role            role card: id, summary, commands, approvals (for the role catalog)
 POST /runs            start a run; body is a command (protocol/command.schema.json)
                       202 started, 400 invalid, 409 busy or duplicate run_id
 GET  /runs/<run_id>   status and result of a run started by this worker
@@ -72,6 +73,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
             self._send(200, {"role": ROLE["id"], "engine": ROLE["runtime"]["engine"], "active_run": active_run})
+            return
+        if self.path == "/role":
+            role = runner.load_role()
+            self._send(200, {key: role.get(key) for key in ("id", "summary", "commands", "approvals")})
             return
         match = re.fullmatch(r"/runs/([^/]+)", self.path)
         if match and match[1] in runs:

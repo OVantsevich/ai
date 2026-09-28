@@ -1,0 +1,35 @@
+{
+  "status": "completed",
+  "summary": "stub: план analyze → implement → verify на основе feature",
+  "plan": {
+    "task_id": "{{task_id}}",
+    "version": 1,
+    "basis": "playbooks/feature.md",
+    "reason": "stub: стандартный план для фичи",
+    "steps": [
+      {
+        "id": "analyze",
+        "type": "role",
+        "role": "business-analyst",
+        "command": "analyze",
+        "text": "Сформулировать требования и критерии приёмки."
+      },
+      {
+        "id": "implement",
+        "type": "role",
+        "role": "go-developer",
+        "command": "implement",
+        "text": "Реализовать изменения по требованиям и открыть MR.",
+        "after": ["analyze"]
+      },
+      {
+        "id": "verify",
+        "type": "role",
+        "role": "qa-engineer",
+        "command": "verify",
+        "text": "Проверить MR по критериям приёмки.",
+        "after": ["implement"]
+      }
+    ]
+  }
+}

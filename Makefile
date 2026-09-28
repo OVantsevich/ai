@@ -1,5 +1,6 @@
 COMPOSE := docker compose -f platform/deploy/docker-compose.yaml --env-file platform/deploy/.env
 ENV_FILE := platform/deploy/.env
+ROLES := $(notdir $(wildcard roles/*))
 
 .DEFAULT_GOAL := help
 
@@ -13,10 +14,10 @@ init: ## Create .env from example and local data directories
 	@grep -q '^GITLAB_MCP_AUTH_TOKEN=.' $(ENV_FILE) || { \
 		sed -i '/^GITLAB_MCP_AUTH_TOKEN=/d' $(ENV_FILE); \
 		echo "GITLAB_MCP_AUTH_TOKEN=$$(openssl rand -hex 24)" >> $(ENV_FILE); }
-	@mkdir -p data/memory data/workspaces data/logs
+	@for r in $(ROLES); do mkdir -p data/memory/$$r data/workspaces/$$r data/logs/$$r; done
 
-up: init ## Start the platform
-	$(COMPOSE) up -d
+up: init build-base ## Start the platform (rebuilds role images)
+	$(COMPOSE) up -d --build
 
 down: ## Stop the platform
 	$(COMPOSE) down
