@@ -9,7 +9,7 @@ n8n turns triggers into events and executes actions; the decisions are made by `
 | `AI: telegram` | every 15 s, `getUpdates`; 409/429 and empty polls complete as Idle (do not return `[]` from Code) | `decision` (buttons), `reply` (reply to an approval message) |
 | `AI: engine` | called by the workflows above | runs `orch()`, sends commands to roles and Telegram messages, feeds follow-up events back |
 
-Telegram is polled, not a webhook, so buttons and replies work from a phone without a tunnel.
+Telegram is polled, not a webhook, so buttons and replies work from a phone without a tunnel. The poll Code node always returns an item (even when idle): an empty `[]` from Code left schedule executions stuck in `running` in n8n 2.40. Overlapping `getUpdates` 409/429 are treated as idle.
 
 ## Flow
 
