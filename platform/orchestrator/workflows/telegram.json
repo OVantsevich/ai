@@ -5,7 +5,7 @@
   "settings": {
     "executionOrder": "v1",
     "executionTimeout": 60,
-    "saveDataSuccessExecution": "none",
+    "saveDataSuccessExecution": "all",
     "saveDataErrorExecution": "all",
     "saveManualExecutions": false
   },
