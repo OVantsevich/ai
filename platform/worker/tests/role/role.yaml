@@ -1,0 +1,8 @@
+id: test-role
+summary: Role used by the worker smoke test
+runtime:
+  engine: stub
+limits:
+  timeout: 20s
+workspace:
+  clone: true

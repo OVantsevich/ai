@@ -1,0 +1,6 @@
+servers:
+  gitlab:
+    url: http://gitlab-mcp-ro:3002/mcp
+    headers:
+      Authorization: Bearer ${SMOKE_MCP_TOKEN}
+    tools: [get_project]

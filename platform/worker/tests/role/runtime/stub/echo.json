@@ -1,0 +1,5 @@
+{
+  "status": "completed",
+  "summary": "echo for task {{task_id}}",
+  "refs": ["jira:TEST-{{task_id}}"]
+}

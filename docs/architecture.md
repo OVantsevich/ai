@@ -15,7 +15,7 @@
 n8n (orchestrator)
   ├── task form (manual input)
   ├── plan approval and role approvals (Telegram)
-  └── plan executor ──► role containers (HTTP: /hooks/run)
+  └── plan executor ──► role containers (HTTP: POST /runs, result to callback_url)
                            ├── role-coordinator
                            ├── role-business-analyst
                            ├── role-go-developer
@@ -27,6 +27,10 @@ n8n (orchestrator)
 postgres: plan and step state, events
 grafana:  dashboards over postgres
 ```
+
+## Role run
+
+The orchestrator sends a command to `POST /runs` of the role container with `callback_url` set to the resume URL of an n8n Wait node. The worker answers `202`, runs the engine in the background and posts the result to `callback_url`. Details are in [platform/worker/README.md](../platform/worker/README.md).
 
 ## Task lifecycle
 
@@ -50,6 +54,6 @@ The stricter rule wins: a plan may add approvals but not remove those required b
 ## Memory
 
 - Accumulated memory lives in `data/memory/<role>/{_global,<group>__<project>}/*.md`.
-- `data/memory/` is a separate git repository (`ai-memory`); `run.sh` commits after each run, `make memory-push` pushes.
+- `data/memory/` is a separate git repository (`ai-memory`); the worker records a `memory.updated` event, `make memory-push` commits and pushes.
 - Each role container mounts only its own memory directory.
 - `roles/<role>/memory/` holds the memory format description and seed knowledge.

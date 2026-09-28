@@ -29,7 +29,7 @@ Run `make help` for all commands.
 |---|---|
 | `roles/` | Independent roles. Each directory holds everything the role needs: instructions, rules, skills, tools, runtime, contracts, memory settings, evals |
 | `playbooks/` | Recommended pipelines the coordinator may use as a basis for a plan |
-| `platform/protocol/` | Formats shared by all components: task, plan, command, result, events |
+| `platform/protocol/` | Formats shared by all components: task, plan, command, result, events (`make check-protocol`) |
 | `platform/worker/` | Common runtime for role containers and engine adapters |
 | `platform/orchestrator/` | Exported n8n workflows |
 | `platform/metrics/` | Metrics schema and Grafana dashboards |

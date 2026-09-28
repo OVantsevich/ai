@@ -21,6 +21,11 @@
     },
     "text": { "type": "string", "minLength": 1 },
     "refs": { "$ref": "common.schema.json#/$defs/refs" },
+    "callback_url": {
+      "description": "The worker POSTs the result here when the run finishes",
+      "type": "string",
+      "pattern": "^https?://"
+    },
     "context": {
       "description": "Results of previous steps and task data the role may need",
       "type": "object",

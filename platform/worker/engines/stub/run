@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""Stub engine: returns a scripted result without an LLM.
+
+Markers in the command text (ignored for `continue`, which completes unless the approval was rejected):
+  [stub:blocked] [stub:needs_approval] [stub:failed]   result status
+  [stub:crash]       exit without a result
+  [stub:invalid]     write a result that violates the schema
+  [stub:sleep=N]     wait N seconds before answering
+  [stub:memory]      append a note to the project memory
+
+For completed runs, $ROLE_DIR/runtime/stub/<command>.json is used as the result if it exists.
+String values "{{run_id}}", "{{task_id}}", "{{role}}" in the fixture are substituted.
+"""
+
+import json
+import re
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+context = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+command = json.loads(Path(context["command"]).read_text(encoding="utf-8"))
+markers = dict(re.findall(r"\[stub:([a-z_]+)(?:=(\d+))?\]", command["text"]))
+values = {"{{run_id}}": command["run_id"], "{{task_id}}": command["task_id"], "{{role}}": command["role"]}
+
+
+def substitute(node):
+    if isinstance(node, dict):
+        return {key: substitute(value) for key, value in node.items()}
+    if isinstance(node, list):
+        return [substitute(value) for value in node]
+    if isinstance(node, str):
+        if node in values:
+            return values[node]
+        for placeholder, value in values.items():
+            node = node.replace(placeholder, str(value))
+    return node
+
+
+print(f"stub: {command['role']} {command['command']} markers={markers}")
+
+if "sleep" in markers:
+    time.sleep(int(markers["sleep"]))
+if "crash" in markers:
+    sys.exit(3)
+if "memory" in markers and context.get("memory_project_dir"):
+    with (Path(context["memory_project_dir"]) / "stub.md").open("a", encoding="utf-8") as notes:
+        notes.write(f"- {datetime.now().isoformat(timespec='seconds')} {command['run_id']}: stub note\n")
+
+if command["command"] == "continue":
+    rejected = (command.get("approval") or {}).get("decision") == "rejected"
+    status = "blocked" if rejected else "completed"
+else:
+    status = next((s for s in ("blocked", "needs_approval", "failed") if s in markers), "completed")
+
+result = {"status": status, "summary": f"stub: {command['command']} {status}"}
+if status == "blocked":
+    reason = (command.get("approval") or {}).get("comment") or "stub question"
+    result["questions"] = [f"stub: {reason}"]
+elif status == "needs_approval":
+    result["pending_approval"] = {"action": "stub.action", "description": "stub: approve scripted action"}
+elif status == "failed":
+    result["error"] = "stub: scripted failure"
+else:
+    fixture = Path(context["role_dir"]) / "runtime" / "stub" / f"{command['command']}.json"
+    if fixture.exists():
+        result = substitute(json.loads(fixture.read_text(encoding="utf-8")))
+
+if "invalid" in markers:
+    result = {"status": "unknown"}
+
+result.setdefault("usage", {"model": "stub", "tokens_in": 0, "tokens_out": 0, "cost_usd": 0, "turns": 1})
+Path(context["result_path"]).write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -6,6 +6,7 @@
   "command": "fix",
   "text": "Возвращать код и сообщение провайдера в теле ответа при отказе платежа.",
   "refs": ["gitlab:payments-and-transfers/pat_online_payment_service", "jira:PAT-42"],
+  "callback_url": "http://n8n:5678/webhook-waiting/1234",
   "context": {
     "previous": []
   }
