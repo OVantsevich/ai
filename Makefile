@@ -1,10 +1,12 @@
 COMPOSE := docker compose -f platform/deploy/docker-compose.yaml --env-file platform/deploy/.env
 ENV_FILE := platform/deploy/.env
 ROLES := $(notdir $(wildcard roles/*))
+# Personal GitHub token from .env as a one-off header: not stored in remotes or git config
+GITHUB_GIT = @git -c credential.helper= -c http.https://github.com/.extraHeader="Authorization: Basic $$(printf 'x-access-token:%s' "$$(grep '^GITHUB_TOKEN=' $(ENV_FILE) | cut -d= -f2-)" | base64 -w0)"
 
 .DEFAULT_GOAL := help
 
-.PHONY: help init up down restart ps logs pull memory-push check-protocol db-apply db-shell build-base test-worker test-orch n8n-import
+.PHONY: help init up down restart ps logs pull memory-push check-protocol db-apply db-shell build-base test-worker test-orch n8n-import push
 
 help: ## Show available commands
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -69,4 +71,7 @@ memory-push: ## Commit and push role memory (data/memory) to its remote
 	@test -d data/memory/.git || (echo "data/memory is not a git repository yet" && exit 1)
 	git -C data/memory add -A
 	git -C data/memory diff --cached --quiet || git -C data/memory commit -q -m "memory: $$(date -Iseconds)"
-	git -C data/memory push
+	$(GITHUB_GIT) -C data/memory push
+
+push: ## Push this repository to personal GitHub
+	$(GITHUB_GIT) push
