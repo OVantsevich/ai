@@ -1,0 +1,11 @@
+# Runtime data: memory (separate repo ai-memory), workspaces, logs
+data/
+
+# Secrets
+.env
+**/.env
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
