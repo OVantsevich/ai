@@ -19,7 +19,7 @@ make ps
 | Service | URL |
 |---|---|
 | n8n | http://localhost:5678 |
-| Grafana | http://localhost:3000 · folder [AI Pipeline](http://localhost:3000/dashboards/f/ffzlh7dorcxkwe/ai-pipeline) |
+| Grafana | http://localhost:3000 (folder AI Pipeline) |
 
 Run `make help` for all commands.
 
