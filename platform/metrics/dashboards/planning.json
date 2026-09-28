@@ -1,0 +1,139 @@
+{
+  "uid": "ai-planning",
+  "title": "Planning",
+  "tags": ["ai-pipeline"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1, "title": "Plans proposed", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawSql": "SELECT count(*)::bigint AS plans FROM plans WHERE $__timeFilter(created_at)" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } }
+    },
+    {
+      "id": 2, "title": "Approved", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawSql": "SELECT count(*)::bigint AS approved FROM plans WHERE status = 'approved' AND $__timeFilter(created_at)" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } }
+    },
+    {
+      "id": 3, "title": "Rejected", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawSql": "SELECT count(*)::bigint AS rejected FROM plans WHERE status = 'rejected' AND $__timeFilter(created_at)" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 3 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 4, "title": "Revisions / task", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT round(avg(versions), 2) AS avg_versions FROM (\n  SELECT task_id, count(*)::float AS versions FROM plans GROUP BY task_id\n) x"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "orange", "value": 1.5 }, { "color": "red", "value": 3 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 5, "title": "First-plan approve %", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT CASE WHEN count(*) = 0 THEN NULL\n  ELSE round(100.0 * count(*) FILTER (WHERE version = 1 AND status = 'approved') / count(DISTINCT task_id), 1) END AS first_ok_pct\nFROM plans WHERE $__timeFilter(created_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null }, { "color": "orange", "value": 50 }, { "color": "green", "value": 80 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 6, "title": "Plan approval wait p50", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY wait_ms) / 1000.0 AS p50_s\nFROM approvals\nWHERE level = 'plan' AND status <> 'pending' AND wait_ms IS NOT NULL AND $__timeFilter(requested_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } } }
+    },
+    {
+      "id": 7, "title": "Playbook usage", "type": "piechart",
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT coalesce(basis, '(none)') AS playbook, count(*)::bigint AS plans\nFROM plans WHERE $__timeFilter(created_at)\nGROUP BY 1 ORDER BY 2 DESC"
+      }],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true }
+      }
+    },
+    {
+      "id": 8, "title": "Revision triggers", "type": "barchart",
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT coalesce(trigger, 'first') AS trigger, count(*)::bigint AS plans\nFROM plans WHERE $__timeFilter(created_at)\nGROUP BY 1 ORDER BY 2 DESC"
+      }],
+      "options": {
+        "orientation": "horizontal",
+        "legend": { "displayMode": "hidden" }, "tooltip": { "mode": "single" }
+      },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 80 }, "color": { "mode": "palette-classic" } } }
+    },
+    {
+      "id": 9, "title": "Plan vs actual duration", "type": "table",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT t.id AS task, t.title, t.status,\n  (SELECT count(*) FROM plans WHERE task_id = t.id) AS plan_versions,\n  (SELECT jsonb_array_length(body->'steps') FROM plans WHERE task_id = t.id AND status = 'approved' ORDER BY version DESC LIMIT 1) AS planned_steps,\n  (SELECT count(*) FROM steps s JOIN plans p ON p.id = s.plan_id WHERE p.task_id = t.id AND p.status = 'approved' AND s.status = 'completed') AS completed_steps,\n  round(extract(epoch FROM coalesce(t.finished_at, now()) - t.created_at) / 60.0, 1) AS wall_min,\n  round(coalesce((SELECT sum(duration_ms) FROM runs WHERE task_id = t.id), 0) / 60000.0, 2) AS role_min,\n  round(coalesce((SELECT sum(wait_ms) FROM approvals WHERE task_id = t.id AND status <> 'pending'), 0) / 60000.0, 2) AS approval_min\nFROM tasks t\nWHERE $__timeFilter(t.created_at)\nORDER BY t.id DESC"
+      }],
+      "options": { "showHeader": true },
+      "description": "wall_min is end-to-end clock time; role_min is sum of role run durations; approval_min is human wait."
+    },
+    {
+      "id": 10, "title": "Plan history", "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT p.task_id AS task, p.version, p.status, coalesce(p.basis, '—') AS basis,\n  coalesce(p.trigger, '—') AS trigger, jsonb_array_length(p.body->'steps') AS steps,\n  left(p.reason, 120) AS reason, p.created_at, p.decided_at\nFROM plans p\nWHERE $__timeFilter(p.created_at)\nORDER BY p.task_id DESC, p.version"
+      }],
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    }
+  ]
+}

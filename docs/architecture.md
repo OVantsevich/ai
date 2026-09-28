@@ -25,7 +25,7 @@ n8n (orchestrator)
                                  ├── Atlassian Rovo MCP ──► Jira, Confluence
                                  └── data/memory/<role>/   (only its own)
 postgres: plan and step state, events
-grafana:  dashboards over postgres
+grafana:  dashboards over postgres (Overview, Roles, Bottlenecks, Planning)
 ```
 
 ## Role run

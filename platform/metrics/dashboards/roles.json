@@ -1,0 +1,162 @@
+{
+  "uid": "ai-roles",
+  "title": "Roles",
+  "tags": ["ai-pipeline"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": {
+    "list": [{
+      "name": "role", "type": "query", "label": "Role", "includeAll": true, "multi": true, "allValue": ".*",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "query": "SELECT DISTINCT role FROM runs ORDER BY 1",
+      "refresh": 2, "current": { "text": "All", "value": "$__all" }
+    }]
+  },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1, "title": "Runs", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawSql": "SELECT count(*)::bigint AS runs FROM runs WHERE role ~ '${role:regex}' AND $__timeFilter(started_at)" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } }
+    },
+    {
+      "id": 2, "title": "Completed %", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT CASE WHEN count(*) = 0 THEN NULL ELSE round(100.0 * count(*) FILTER (WHERE status = 'completed') / count(*), 1) END AS completed_pct\nFROM runs WHERE role ~ '${role:regex}' AND finished_at IS NOT NULL AND $__timeFilter(started_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null }, { "color": "orange", "value": 70 }, { "color": "green", "value": 90 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 3, "title": "Blocked %", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT CASE WHEN count(*) = 0 THEN NULL ELSE round(100.0 * count(*) FILTER (WHERE status = 'blocked') / count(*), 1) END AS blocked_pct\nFROM runs WHERE role ~ '${role:regex}' AND finished_at IS NOT NULL AND $__timeFilter(started_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "orange", "value": 10 }, { "color": "red", "value": 25 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 4, "title": "Failed %", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT CASE WHEN count(*) = 0 THEN NULL ELSE round(100.0 * count(*) FILTER (WHERE status = 'failed') / count(*), 1) END AS failed_pct\nFROM runs WHERE role ~ '${role:regex}' AND finished_at IS NOT NULL AND $__timeFilter(started_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "orange", "value": 5 }, { "color": "red", "value": 15 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 5, "title": "p50 duration", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY duration_ms) / 1000.0 AS p50_s\nFROM runs WHERE role ~ '${role:regex}' AND duration_ms IS NOT NULL AND $__timeFilter(started_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } }
+    },
+    {
+      "id": 6, "title": "p95 duration", "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms) / 1000.0 AS p95_s\nFROM runs WHERE role ~ '${role:regex}' AND duration_ms IS NOT NULL AND $__timeFilter(started_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } } }
+    },
+    {
+      "id": 7, "title": "Duration by role", "type": "table",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT role,\n  count(*)::bigint AS runs,\n  count(*) FILTER (WHERE status = 'completed')::bigint AS completed,\n  count(*) FILTER (WHERE status = 'blocked')::bigint AS blocked,\n  count(*) FILTER (WHERE status = 'failed')::bigint AS failed,\n  round(avg(duration_ms) FILTER (WHERE duration_ms IS NOT NULL) / 1000.0, 1) AS avg_s,\n  round((percentile_cont(0.5) WITHIN GROUP (ORDER BY duration_ms) FILTER (WHERE duration_ms IS NOT NULL))::numeric / 1000.0, 1) AS p50_s,\n  round((percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms) FILTER (WHERE duration_ms IS NOT NULL))::numeric / 1000.0, 1) AS p95_s\nFROM runs\nWHERE role ~ '${role:regex}' AND $__timeFilter(started_at)\nGROUP BY role ORDER BY role"
+      }],
+      "options": { "showHeader": true, "cellHeight": "sm" },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } } }
+    },
+    {
+      "id": 8, "title": "Outcomes by role", "type": "barchart",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT role, status, count(*)::bigint AS runs\nFROM runs\nWHERE role ~ '${role:regex}' AND finished_at IS NOT NULL AND $__timeFilter(started_at)\nGROUP BY role, status ORDER BY role, status"
+      }],
+      "options": {
+        "orientation": "horizontal", "xTickLabelRotation": 0, "stacking": "normal",
+        "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 80 } } }
+    },
+    {
+      "id": 9, "title": "Run duration over time", "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "time_series", "rawSql":
+        "SELECT finished_at AS time, role AS metric, duration_ms / 1000.0 AS value\nFROM runs\nWHERE role ~ '${role:regex}' AND finished_at IS NOT NULL AND duration_ms IS NOT NULL AND $__timeFilter(finished_at)\nORDER BY 1"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "points", "pointSize": 8, "lineWidth": 0, "fillOpacity": 0, "showPoints": "always" }
+        }
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 10, "title": "LLM usage by role", "type": "table",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 22 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT role,\n  coalesce(model, '—') AS model,\n  count(*)::bigint AS runs,\n  coalesce(sum(tokens_in), 0)::bigint AS tokens_in,\n  coalesce(sum(tokens_out), 0)::bigint AS tokens_out,\n  coalesce(sum(cost_usd), 0) AS cost_usd,\n  coalesce(sum(turns), 0)::bigint AS turns\nFROM runs\nWHERE role ~ '${role:regex}' AND $__timeFilter(started_at)\nGROUP BY role, model ORDER BY role, model"
+      }],
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "cost_usd" }, "properties": [{ "id": "unit", "value": "currencyUSD" }, { "id": "decimals", "value": 4 }] }
+        ]
+      }
+    }
+  ]
+}

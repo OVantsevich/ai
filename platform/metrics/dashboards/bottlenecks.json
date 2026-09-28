@@ -1,0 +1,135 @@
+{
+  "uid": "ai-bottlenecks",
+  "title": "Bottlenecks",
+  "tags": ["ai-pipeline"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1, "title": "Approval wait p50", "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY wait_ms) / 1000.0 AS p50_s\nFROM approvals WHERE status <> 'pending' AND wait_ms IS NOT NULL AND $__timeFilter(requested_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s", "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "orange", "value": 60 }, { "color": "red", "value": 300 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 2, "title": "Approval wait p95", "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY wait_ms) / 1000.0 AS p95_s\nFROM approvals WHERE status <> 'pending' AND wait_ms IS NOT NULL AND $__timeFilter(requested_at)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } } }
+    },
+    {
+      "id": 3, "title": "Pending approvals", "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawSql": "SELECT count(*)::bigint AS pending FROM approvals WHERE status = 'pending'" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 3 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 4, "title": "Step queue p50", "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY (payload->>'queue_ms')::bigint) / 1000.0 AS p50_s\nFROM events\nWHERE type = 'step.started' AND payload ? 'queue_ms' AND $__timeFilter(ts)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 2, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } }
+    },
+    {
+      "id": 5, "title": "Approval wait by level", "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT level,\n  count(*)::bigint AS decisions,\n  count(*) FILTER (WHERE status = 'approved')::bigint AS approved,\n  count(*) FILTER (WHERE status = 'rejected')::bigint AS rejected,\n  round(avg(wait_ms) / 1000.0, 1) AS avg_s,\n  round((percentile_cont(0.5) WITHIN GROUP (ORDER BY wait_ms))::numeric / 1000.0, 1) AS p50_s,\n  round((percentile_cont(0.95) WITHIN GROUP (ORDER BY wait_ms))::numeric / 1000.0, 1) AS p95_s\nFROM approvals\nWHERE status <> 'pending' AND wait_ms IS NOT NULL AND $__timeFilter(requested_at)\nGROUP BY level ORDER BY level"
+      }],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 6, "title": "Time spent waiting vs running", "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT t.id::text AS task,\n  round(coalesce((SELECT sum(duration_ms) FROM runs WHERE task_id = t.id), 0) / 1000.0, 1) AS role_s,\n  round(coalesce((SELECT sum(wait_ms) FROM approvals WHERE task_id = t.id AND status <> 'pending'), 0) / 1000.0, 1) AS approval_s\nFROM tasks t\nWHERE $__timeFilter(t.created_at)\nORDER BY t.id"
+      }],
+      "options": {
+        "orientation": "horizontal", "stacking": "normal",
+        "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 80 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "role_s" }, "properties": [{ "id": "displayName", "value": "roles" }, { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "approval_s" }, "properties": [{ "id": "displayName", "value": "approvals" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 7, "title": "Role → role handoffs (loops)", "type": "table",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "WITH cmds AS (\n  SELECT task_id, role AS to_role, payload->>'from' AS from_role, payload->>'command' AS command, ts,\n    lag(role) OVER (PARTITION BY task_id ORDER BY id) AS prev_role\n  FROM events\n  WHERE type = 'command.sent' AND $__timeFilter(ts)\n)\nSELECT coalesce(prev_role, from_role, '—') AS \"from\",\n       to_role AS \"to\",\n       count(*)::bigint AS handoffs\nFROM cmds\nWHERE prev_role IS NOT NULL OR from_role IS NOT NULL\nGROUP BY 1, 2\nORDER BY handoffs DESC, 1, 2"
+      }],
+      "options": { "showHeader": true },
+      "description": "Pairs of consecutive role commands within a task. Dev ↔ QA loops show up as go-developer ↔ qa-engineer."
+    },
+    {
+      "id": 8, "title": "Blocked / failed steps", "type": "table",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "table", "rawSql":
+        "SELECT t.id AS task, s.step_key, s.role, s.status, s.summary, s.finished_at\nFROM steps s\nJOIN tasks t ON t.id = s.task_id\nWHERE s.status IN ('blocked', 'failed') AND $__timeFilter(coalesce(s.finished_at, s.started_at, s.ready_at))\nORDER BY s.finished_at DESC NULLS LAST, s.id DESC\nLIMIT 50"
+      }],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 9, "title": "Approval wait over time", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 21 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "ai-postgres" },
+      "targets": [{
+        "refId": "A", "format": "time_series", "rawSql":
+        "SELECT decided_at AS time, level AS metric, wait_ms / 1000.0 AS value\nFROM approvals\nWHERE status <> 'pending' AND decided_at IS NOT NULL AND wait_ms IS NOT NULL AND $__timeFilter(decided_at)\nORDER BY 1"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "points", "pointSize": 8, "lineWidth": 0, "showPoints": "always" }
+        }
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    }
+  ]
+}

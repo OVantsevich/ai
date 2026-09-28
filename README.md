@@ -19,7 +19,7 @@ make ps
 | Service | URL |
 |---|---|
 | n8n | http://localhost:5678 |
-| Grafana | http://localhost:3000 |
+| Grafana | http://localhost:3000 · folder [AI Pipeline](http://localhost:3000/dashboards/f/ffzlh7dorcxkwe/ai-pipeline) |
 
 Run `make help` for all commands.
 
@@ -32,7 +32,7 @@ Run `make help` for all commands.
 | `platform/protocol/` | Formats shared by all components: task, plan, command, result, events (`make check-protocol`) |
 | `platform/worker/` | Common runtime for role containers and engine adapters |
 | `platform/orchestrator/` | Exported n8n workflows |
-| `platform/metrics/` | Metrics schema and Grafana dashboards |
+| `platform/metrics/` | Grafana dashboards ([Overview](http://localhost:3000/d/ai-overview), [Roles](http://localhost:3000/d/ai-roles), [Bottlenecks](http://localhost:3000/d/ai-bottlenecks), [Planning](http://localhost:3000/d/ai-planning)) |
 | `platform/deploy/` | docker-compose, environment example, Grafana provisioning, PostgreSQL schema (`postgres/init/`) |
 | `data/` | Local runtime data, not tracked: `memory/` (clone of `ai-memory`), `workspaces/`, `logs/` |
 
