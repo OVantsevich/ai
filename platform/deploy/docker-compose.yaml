@@ -83,6 +83,10 @@ services:
       - NODE_ENV=production
       - TZ=${TZ}
       - GENERIC_TIMEZONE=${TZ}
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - AI_ROLES=coordinator,business-analyst,go-developer,qa-engineer
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:

@@ -1,0 +1,56 @@
+{
+  "id": "aiTaskForm000001",
+  "name": "AI: task form",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "7f1c2a10-0002-4000-8000-000000000001",
+      "name": "Task form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [0, 0],
+      "webhookId": "5b0d3c6e-6a57-4b0e-9d61-2f7a1c3e0a01",
+      "parameters": {
+        "formTitle": "Новая задача",
+        "formDescription": "Задача уходит coordinator, план придёт в Telegram на одобрение.",
+        "formFields": {
+          "values": [
+            { "fieldLabel": "Заголовок", "requiredField": true },
+            { "fieldLabel": "Описание", "fieldType": "textarea", "requiredField": true },
+            { "fieldLabel": "Ссылки", "fieldType": "textarea", "placeholder": "по одной в строке: gitlab:group/project, jira:PAT-1, confluence:123, https://..." }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": { "path": "task", "respondWithOptions": { "values": { "formSubmittedText": "Задача принята. Следи за Telegram." } } }
+      }
+    },
+    {
+      "id": "7f1c2a10-0002-4000-8000-000000000002",
+      "name": "To events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Role catalog from GET /role of every enabled role, then the task itself.\nconst cards = [];\nfor (const role of ($env.AI_ROLES || '').split(',').map(s => s.trim()).filter(Boolean)) {\n  try {\n    cards.push(await this.helpers.httpRequest({ url: `http://role-${role}:9000/role`, json: true, timeout: 5000 }));\n  } catch (e) {\n    console.log(`role ${role} unavailable`, String(e.message || e));\n  }\n}\nconst form = $input.first().json;\nreturn [\n  { json: { event: { type: 'roles', cards } } },\n  { json: { event: { type: 'task.create', title: form['Заголовок'], text: form['Описание'], refs: String(form['Ссылки'] || '').split('\\n') } } },\n];"
+      }
+    },
+    {
+      "id": "7f1c2a10-0002-4000-8000-000000000003",
+      "name": "Engine",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [480, 0],
+      "parameters": {
+        "source": "database",
+        "workflowId": { "__rl": true, "value": "aiEngine00000001", "mode": "id" },
+        "options": { "waitForSubWorkflow": true }
+      }
+    }
+  ],
+  "connections": {
+    "Task form": { "main": [[{ "node": "To events", "type": "main", "index": 0 }]] },
+    "To events": { "main": [[{ "node": "Engine", "type": "main", "index": 0 }]] }
+  }
+}

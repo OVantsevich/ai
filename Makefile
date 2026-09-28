@@ -4,7 +4,7 @@ ROLES := $(notdir $(wildcard roles/*))
 
 .DEFAULT_GOAL := help
 
-.PHONY: help init up down restart ps logs pull memory-push check-protocol db-apply db-shell build-base test-worker
+.PHONY: help init up down restart ps logs pull memory-push check-protocol db-apply db-shell build-base test-worker test-orch n8n-import
 
 help: ## Show available commands
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -54,6 +54,13 @@ db-apply: ## Apply SQL schema to the running postgres (idempotent)
 		echo "apply $$f"; \
 		$(COMPOSE) exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -q -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < $$f || exit 1; \
 	done
+
+n8n-import: ## Import and publish AI workflows into n8n (restarts n8n)
+	sh platform/orchestrator/import.sh
+
+test-orch: db-apply ## Test the orchestrator state machine in PostgreSQL (rolled back)
+	$(COMPOSE) exec -T postgres sh -c 'psql -q -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -f -' \
+		< platform/deploy/postgres/tests/orchestrator_test.sql
 
 db-shell: ## Open psql in the platform database
 	$(COMPOSE) exec postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'

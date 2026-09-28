@@ -1,0 +1,44 @@
+{
+  "id": "aiRoleResult0001",
+  "name": "AI: role result",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "7f1c2a10-0003-4000-8000-000000000001",
+      "name": "Role result",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "5b0d3c6e-6a57-4b0e-9d61-2f7a1c3e0a02",
+      "parameters": { "httpMethod": "POST", "path": "role-result", "responseMode": "onReceived", "options": {} }
+    },
+    {
+      "id": "7f1c2a10-0003-4000-8000-000000000002",
+      "name": "To event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { event: { type: 'result', result: $input.first().json.body } } }];"
+      }
+    },
+    {
+      "id": "7f1c2a10-0003-4000-8000-000000000003",
+      "name": "Engine",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [480, 0],
+      "parameters": {
+        "source": "database",
+        "workflowId": { "__rl": true, "value": "aiEngine00000001", "mode": "id" },
+        "options": { "waitForSubWorkflow": true }
+      }
+    }
+  ],
+  "connections": {
+    "Role result": { "main": [[{ "node": "To event", "type": "main", "index": 0 }]] },
+    "To event": { "main": [[{ "node": "Engine", "type": "main", "index": 0 }]] }
+  }
+}

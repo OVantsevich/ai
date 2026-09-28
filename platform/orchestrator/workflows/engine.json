@@ -1,0 +1,48 @@
+{
+  "id": "aiEngine00000001",
+  "name": "AI: engine",
+  "active": false,
+  "settings": { "executionOrder": "v1", "callerPolicy": "workflowsFromSameOwner" },
+  "nodes": [
+    {
+      "id": "7f1c2a10-0001-4000-8000-000000000001",
+      "name": "Event",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "parameters": { "inputSource": "passthrough" }
+    },
+    {
+      "id": "7f1c2a10-0001-4000-8000-000000000002",
+      "name": "orch",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [240, 0],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT orch($1::jsonb) AS actions",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [JSON.stringify($json.event)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "aiPostgres000001", "name": "AI Postgres" } }
+    },
+    {
+      "id": "7f1c2a10-0001-4000-8000-000000000003",
+      "name": "Run actions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Executes actions returned by orch(); follow-up events go back to orch.\nconst token = $env.TELEGRAM_BOT_TOKEN;\nconst chat = $env.TELEGRAM_CHAT_ID;\nconst next = [];\nfor (const item of $input.all()) {\n  for (const a of item.json.actions || []) {\n    if (a.type === 'run') {\n      try {\n        await this.helpers.httpRequest({ method: 'POST', url: a.url, body: a.command, json: true, timeout: 15000 });\n      } catch (e) {\n        next.push({ json: { event: { type: 'dispatch_failed', run_id: a.command.run_id, role: a.command.role, error: String(e.message || e).slice(0, 500) } } });\n      }\n    } else if (a.type === 'telegram') {\n      const body = { chat_id: chat, text: a.text, disable_web_page_preview: true };\n      if (a.buttons) body.reply_markup = { inline_keyboard: a.buttons };\n      try {\n        const r = await this.helpers.httpRequest({ method: 'POST', url: `https://api.telegram.org/bot${token}/sendMessage`, body, json: true, timeout: 15000 });\n        if (a.approval_id) next.push({ json: { event: { type: 'message', approval_id: a.approval_id, message_id: r.result.message_id } } });\n      } catch (e) {\n        console.log('telegram send failed', String(e.message || e));\n      }\n    }\n  }\n}\nreturn next;"
+      }
+    }
+  ],
+  "connections": {
+    "Event": { "main": [[{ "node": "orch", "type": "main", "index": 0 }]] },
+    "orch": { "main": [[{ "node": "Run actions", "type": "main", "index": 0 }]] },
+    "Run actions": { "main": [[{ "node": "orch", "type": "main", "index": 0 }]] }
+  }
+}
