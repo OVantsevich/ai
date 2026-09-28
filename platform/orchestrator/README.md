@@ -6,7 +6,7 @@ n8n turns triggers into events and executes actions; the decisions are made by `
 |---|---|---|
 | `AI: task form` | form http://localhost:5678/form/task | `roles` (catalog from `GET /role`), `task.create` |
 | `AI: role result` | `POST /webhook/role-result` (worker `callback_url`) | `result` |
-| `AI: telegram` | every 3 s, `getUpdates` | `decision` (buttons), `reply` (reply to an approval message) |
+| `AI: telegram` | every 15 s, `getUpdates`; 409/429 and empty polls complete as Idle (do not return `[]` from Code) | `decision` (buttons), `reply` (reply to an approval message) |
 | `AI: engine` | called by the workflows above | runs `orch()`, sends commands to roles and Telegram messages, feeds follow-up events back |
 
 Telegram is polled, not a webhook, so buttons and replies work from a phone without a tunnel.

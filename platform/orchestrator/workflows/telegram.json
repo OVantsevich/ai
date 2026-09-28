@@ -2,15 +2,21 @@
   "id": "aiTelegram000001",
   "name": "AI: telegram",
   "active": false,
-  "settings": { "executionOrder": "v1", "saveDataSuccessExecution": "none", "saveManualExecutions": false },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 60,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false
+  },
   "nodes": [
     {
       "id": "7f1c2a10-0004-4000-8000-000000000001",
-      "name": "Every 3s",
+      "name": "Every 15s",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [0, 0],
-      "parameters": { "rule": { "interval": [{ "field": "seconds", "secondsInterval": 3 }] } }
+      "parameters": { "rule": { "interval": [{ "field": "seconds", "secondsInterval": 15 }] } }
     },
     {
       "id": "7f1c2a10-0004-4000-8000-000000000002",
@@ -20,15 +26,44 @@
       "position": [240, 0],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Button presses and replies to approval messages; long polling is not needed for one chat.\nconst token = $env.TELEGRAM_BOT_TOKEN;\nconst chat = String($env.TELEGRAM_CHAT_ID);\nconst state = $getWorkflowStaticData('global');\nconst api = (method, body) => this.helpers.httpRequest({ method: 'POST', url: `https://api.telegram.org/bot${token}/${method}`, body, json: true, timeout: 15000 });\nconst dropButtons = (messageId) => api('editMessageReplyMarkup', { chat_id: chat, message_id: messageId, reply_markup: { inline_keyboard: [] } }).catch(() => {});\n\nconst updates = await api('getUpdates', { offset: state.offset || 0, timeout: 0, allowed_updates: ['message', 'callback_query'] });\nconst events = [];\nfor (const u of updates.result) {\n  state.offset = u.update_id + 1;\n  const cq = u.callback_query;\n  if (cq && String(cq.message?.chat?.id) === chat) {\n    const m = /^ap:(\\d+):([ar])$/.exec(cq.data || '');\n    await api('answerCallbackQuery', { callback_query_id: cq.id, text: m ? (m[2] === 'a' ? 'Одобрено' : 'Отклонено') : '' }).catch(() => {});\n    if (m) {\n      await dropButtons(cq.message.message_id);\n      events.push({ json: { event: { type: 'decision', approval_id: Number(m[1]), decision: m[2] === 'a' ? 'approved' : 'rejected' } } });\n    }\n  }\n  const msg = u.message;\n  if (msg && String(msg.chat.id) === chat && msg.reply_to_message && msg.text) {\n    await dropButtons(msg.reply_to_message.message_id);\n    events.push({ json: { event: { type: 'reply', message_id: msg.reply_to_message.message_id, text: msg.text } } });\n  }\n}\nreturn events;"
+        "jsCode": "const token = $env.TELEGRAM_BOT_TOKEN;\nconst chat = String($env.TELEGRAM_CHAT_ID);\nconst api = (method, body) => this.helpers.httpRequest({\n  method: 'POST', url: `https://api.telegram.org/bot${token}/${method}`, body, json: true, timeout: 10000,\n});\n\nlet updates;\ntry {\n  updates = await api('getUpdates', { timeout: 0, allowed_updates: ['message', 'callback_query'] });\n} catch (e) {\n  const msg = String(e.message || e);\n  if (/\\b(409|429)\\b/.test(msg) || /conflict/i.test(msg)) {\n    return [{ json: { event: null, note: 'conflict' } }];\n  }\n  throw e;\n}\n\nconst events = [];\nlet lastId = 0;\nfor (const u of updates.result || []) {\n  lastId = Math.max(lastId, u.update_id);\n  const cq = u.callback_query;\n  if (cq && String(cq.message?.chat?.id) === chat) {\n    const m = /^ap:(\\d+):([ar])$/.exec(cq.data || '');\n    await api('answerCallbackQuery', {\n      callback_query_id: cq.id,\n      text: m ? (m[2] === 'a' ? 'Одобрено' : 'Отклонено') : '',\n    }).catch(() => {});\n    if (m) {\n      await api('editMessageReplyMarkup', {\n        chat_id: chat, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] },\n      }).catch(() => {});\n      events.push({ json: { event: { type: 'decision', approval_id: Number(m[1]), decision: m[2] === 'a' ? 'approved' : 'rejected' } } });\n    }\n  }\n  const msg = u.message;\n  if (msg && String(msg.chat.id) === chat && msg.reply_to_message && msg.text) {\n    await api('editMessageReplyMarkup', {\n      chat_id: chat, message_id: msg.reply_to_message.message_id, reply_markup: { inline_keyboard: [] },\n    }).catch(() => {});\n    events.push({ json: { event: { type: 'reply', message_id: msg.reply_to_message.message_id, text: msg.text } } });\n  }\n}\nif (lastId) {\n  await api('getUpdates', { offset: lastId + 1, timeout: 0 }).catch(() => {});\n}\nreturn events.length ? events : [{ json: { event: null } }];"
       }
+    },
+    {
+      "id": "7f1c2a10-0004-4000-8000-000000000012",
+      "name": "Has event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [460, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "ev",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "",
+              "operator": { "type": "object", "operation": "exists", "singleValue": true }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7f1c2a10-0004-4000-8000-000000000013",
+      "name": "Idle",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [700, 120],
+      "parameters": {}
     },
     {
       "id": "7f1c2a10-0004-4000-8000-000000000003",
       "name": "Engine",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [480, 0],
+      "position": [700, -80],
       "parameters": {
         "source": "database",
         "workflowId": { "__rl": true, "value": "aiEngine00000001", "mode": "id" },
@@ -37,7 +72,13 @@
     }
   ],
   "connections": {
-    "Every 3s": { "main": [[{ "node": "Poll", "type": "main", "index": 0 }]] },
-    "Poll": { "main": [[{ "node": "Engine", "type": "main", "index": 0 }]] }
+    "Every 15s": { "main": [[{ "node": "Poll", "type": "main", "index": 0 }]] },
+    "Poll": { "main": [[{ "node": "Has event?", "type": "main", "index": 0 }]] },
+    "Has event?": {
+      "main": [
+        [{ "node": "Engine", "type": "main", "index": 0 }],
+        [{ "node": "Idle", "type": "main", "index": 0 }]
+      ]
+    }
   }
 }

@@ -84,6 +84,8 @@ services:
       - TZ=${TZ}
       - GENERIC_TIMEZONE=${TZ}
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_CONCURRENCY_PRODUCTION_LIMIT=5
+      - EXECUTIONS_TIMEOUT=120
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - AI_ROLES=coordinator,business-analyst,go-developer,qa-engineer
