@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "plan.schema.json",
+  "title": "Plan",
+  "description": "Execution plan built by the coordinator. Steps form a DAG through `after`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "version", "reason", "steps"],
+  "properties": {
+    "task_id": { "type": "integer", "minimum": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "basis": {
+      "description": "Playbook used as a basis, if any",
+      "type": "string",
+      "pattern": "^playbooks/[a-z0-9-]+\\.md$"
+    },
+    "reason": {
+      "description": "Why this plan fits the task; for revisions, what changed and why",
+      "type": "string",
+      "minLength": 1
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/roleStep" },
+          { "$ref": "#/$defs/approvalStep" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "roleStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "role", "command", "text"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/stepKey" },
+        "type": { "const": "role" },
+        "role": { "$ref": "common.schema.json#/$defs/roleId" },
+        "command": {
+          "description": "Command from the role's contracts/commands.md",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "text": { "type": "string", "minLength": 1 },
+        "refs": { "$ref": "common.schema.json#/$defs/refs" },
+        "after": { "$ref": "#/$defs/after" }
+      }
+    },
+    "approvalStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "text"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/stepKey" },
+        "type": { "const": "human_approval" },
+        "text": {
+          "description": "What the human is asked to approve",
+          "type": "string",
+          "minLength": 1
+        },
+        "refs": { "$ref": "common.schema.json#/$defs/refs" },
+        "after": { "$ref": "#/$defs/after" }
+      }
+    },
+    "after": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/stepKey" },
+      "uniqueItems": true
+    }
+  }
+}

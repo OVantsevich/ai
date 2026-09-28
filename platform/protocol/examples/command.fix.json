@@ -1,0 +1,12 @@
+{
+  "run_id": "42-fix-1",
+  "task_id": 42,
+  "step_id": "fix",
+  "role": "go-developer",
+  "command": "fix",
+  "text": "Возвращать код и сообщение провайдера в теле ответа при отказе платежа.",
+  "refs": ["gitlab:payments-and-transfers/pat_online_payment_service", "jira:PAT-42"],
+  "context": {
+    "previous": []
+  }
+}

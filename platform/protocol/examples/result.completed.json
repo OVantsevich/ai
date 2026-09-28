@@ -1,0 +1,15 @@
+{
+  "run_id": "42-fix-2",
+  "role": "go-developer",
+  "status": "completed",
+  "summary": "Ответ при отказе провайдера содержит provider_code и provider_message; добавлены тесты. MR !123.",
+  "refs": ["gitlab:payments-and-transfers/pat_online_payment_service!123"],
+  "usage": {
+    "duration_ms": 840000,
+    "model": "stub",
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "cost_usd": 0,
+    "turns": 12
+  }
+}

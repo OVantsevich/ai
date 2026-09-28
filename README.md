@@ -33,7 +33,7 @@ Run `make help` for all commands.
 | `platform/worker/` | Common runtime for role containers and engine adapters |
 | `platform/orchestrator/` | Exported n8n workflows |
 | `platform/metrics/` | Metrics schema and Grafana dashboards |
-| `platform/deploy/` | docker-compose, environment example, Grafana provisioning |
+| `platform/deploy/` | docker-compose, environment example, Grafana provisioning, PostgreSQL schema (`postgres/init/`) |
 | `data/` | Local runtime data, not tracked: `memory/` (clone of `ai-memory`), `workspaces/`, `logs/` |
 
 ## Repositories and connections

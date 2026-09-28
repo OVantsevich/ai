@@ -3,7 +3,7 @@ ENV_FILE := platform/deploy/.env
 
 .DEFAULT_GOAL := help
 
-.PHONY: help init up down restart ps logs pull memory-push
+.PHONY: help init up down restart ps logs pull memory-push check-protocol db-apply db-shell
 
 help: ## Show available commands
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -32,6 +32,19 @@ logs: ## Follow logs (make logs s=n8n for one service)
 
 pull: ## Pull fresh images
 	$(COMPOSE) pull
+
+check-protocol: ## Validate protocol examples against schemas
+	docker run --rm -v $(CURDIR)/platform/protocol:/protocol:ro python:3.12-alpine \
+		sh -c "pip install -q --disable-pip-version-check --root-user-action=ignore jsonschema && python /protocol/validate.py"
+
+db-apply: ## Apply SQL schema to the running postgres (idempotent)
+	@for f in platform/deploy/postgres/init/*.sql; do \
+		echo "apply $$f"; \
+		$(COMPOSE) exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -q -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < $$f || exit 1; \
+	done
+
+db-shell: ## Open psql in the platform database
+	$(COMPOSE) exec postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
 memory-push: ## Push role memory (data/memory) to its remote
 	@test -d data/memory/.git || (echo "data/memory is not a git repository yet" && exit 1)

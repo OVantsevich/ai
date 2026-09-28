@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "command.schema.json",
+  "title": "Command",
+  "description": "Request from the orchestrator to a role worker (POST /hooks/run).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "task_id", "role", "command", "text"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "integer", "minimum": 1 },
+    "step_id": {
+      "description": "Absent for coordinator runs that build or revise a plan",
+      "$ref": "common.schema.json#/$defs/stepKey"
+    },
+    "role": { "$ref": "common.schema.json#/$defs/roleId" },
+    "command": {
+      "description": "Role command; `continue` resumes a run after a human decision",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "text": { "type": "string", "minLength": 1 },
+    "refs": { "$ref": "common.schema.json#/$defs/refs" },
+    "context": {
+      "description": "Results of previous steps and task data the role may need",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "task": { "$ref": "task.schema.json" },
+        "plan": { "$ref": "plan.schema.json" },
+        "previous": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["step_id", "role", "status", "summary"],
+            "properties": {
+              "step_id": { "$ref": "common.schema.json#/$defs/stepKey" },
+              "role": { "$ref": "common.schema.json#/$defs/roleId" },
+              "status": { "type": "string" },
+              "summary": { "type": "string" },
+              "refs": { "$ref": "common.schema.json#/$defs/refs" }
+            }
+          }
+        }
+      }
+    },
+    "approval": {
+      "description": "Human decision, present only for `continue`",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision"],
+      "properties": {
+        "decision": { "enum": ["approved", "rejected"] },
+        "comment": { "type": "string" }
+      }
+    }
+  }
+}

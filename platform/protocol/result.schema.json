@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "result.schema.json",
+  "title": "Result",
+  "description": "Response of a role worker to a command.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "role", "status", "summary"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "role": { "$ref": "common.schema.json#/$defs/roleId" },
+    "status": { "enum": ["completed", "needs_approval", "blocked", "failed"] },
+    "summary": {
+      "description": "Short human-readable outcome, shown in Telegram and passed to next steps",
+      "type": "string",
+      "minLength": 1
+    },
+    "refs": {
+      "description": "Resources created or changed: MR, Jira issue, Confluence page",
+      "$ref": "common.schema.json#/$defs/refs"
+    },
+    "questions": {
+      "description": "Required when status is blocked",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "pending_approval": {
+      "description": "Required when status is needs_approval",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "description"],
+      "properties": {
+        "action": {
+          "description": "Action id from approvals in role.yaml",
+          "type": "string"
+        },
+        "description": { "type": "string", "minLength": 1 },
+        "details": { "type": "string" }
+      }
+    },
+    "error": {
+      "description": "Required when status is failed",
+      "type": "string"
+    },
+    "plan": {
+      "description": "Coordinator only: proposed or revised plan",
+      "$ref": "plan.schema.json"
+    },
+    "usage": { "$ref": "common.schema.json#/$defs/usage" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "blocked" } } },
+      "then": { "required": ["questions"], "properties": { "questions": { "minItems": 1 } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "needs_approval" } } },
+      "then": { "required": ["pending_approval"] }
+    },
+    {
+      "if": { "properties": { "status": { "const": "failed" } } },
+      "then": { "required": ["error"] }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "task_id": 42,
+  "version": 1,
+  "basis": "playbooks/bugfix.md",
+  "reason": "Изменение в одном сервисе, требования понятны из задачи: анализ и архитектура не нужны.",
+  "steps": [
+    {
+      "id": "fix",
+      "type": "role",
+      "role": "go-developer",
+      "command": "fix",
+      "text": "Возвращать код и сообщение провайдера в теле ответа при отказе платежа.",
+      "refs": ["gitlab:payments-and-transfers/pat_online_payment_service", "jira:PAT-42"]
+    },
+    {
+      "id": "verify",
+      "type": "role",
+      "role": "qa-engineer",
+      "command": "verify",
+      "text": "Проверить MR по критериям из PAT-42.",
+      "refs": ["jira:PAT-42"],
+      "after": ["fix"]
+    },
+    {
+      "id": "merge-approval",
+      "type": "human_approval",
+      "text": "MR готов к слиянию",
+      "after": ["verify"]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "task.schema.json",
+  "title": "Task",
+  "description": "A task entered manually. Repositories and Jira projects are resolved by the coordinator unless given in refs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "text", "created_at"],
+  "properties": {
+    "id": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "text": { "type": "string", "minLength": 1 },
+    "refs": { "$ref": "common.schema.json#/$defs/refs" },
+    "created_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+  }
+}

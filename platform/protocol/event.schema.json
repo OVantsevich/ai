@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "event.schema.json",
+  "title": "Event",
+  "description": "Metrics event. Stored in the events table; see events.md for types and payloads.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type"],
+  "properties": {
+    "ts": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "type": {
+      "enum": [
+        "task.created", "task.status_changed",
+        "plan.proposed", "plan.approved", "plan.rejected", "plan.revised",
+        "step.ready", "step.started", "step.completed", "step.blocked", "step.failed", "step.skipped",
+        "run.started", "run.finished",
+        "approval.requested", "approval.granted", "approval.rejected",
+        "command.sent",
+        "llm.usage",
+        "memory.updated"
+      ]
+    },
+    "task_id": { "type": "integer", "minimum": 1 },
+    "plan_version": { "type": "integer", "minimum": 1 },
+    "step_id": { "$ref": "common.schema.json#/$defs/stepKey" },
+    "run_id": { "type": "string" },
+    "role": { "$ref": "common.schema.json#/$defs/roleId" },
+    "payload": { "type": "object" }
+  }
+}

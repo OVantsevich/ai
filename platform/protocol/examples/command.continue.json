@@ -1,0 +1,11 @@
+{
+  "run_id": "42-fix-2",
+  "task_id": 42,
+  "step_id": "fix",
+  "role": "go-developer",
+  "command": "continue",
+  "text": "Продолжить после решения по созданию MR.",
+  "approval": {
+    "decision": "approved"
+  }
+}

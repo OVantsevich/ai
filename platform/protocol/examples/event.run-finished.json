@@ -1,0 +1,13 @@
+{
+  "ts": "2026-09-28T09:14:00+03:00",
+  "type": "run.finished",
+  "task_id": 42,
+  "plan_version": 1,
+  "step_id": "fix",
+  "run_id": "42-fix-2",
+  "role": "go-developer",
+  "payload": {
+    "status": "completed",
+    "duration_ms": 840000
+  }
+}

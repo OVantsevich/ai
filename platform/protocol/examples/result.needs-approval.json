@@ -1,0 +1,11 @@
+{
+  "run_id": "42-fix-1",
+  "role": "go-developer",
+  "status": "needs_approval",
+  "summary": "Изменения готовы в ветке ai/42-provider-error, тесты проходят.",
+  "pending_approval": {
+    "action": "gitlab.create_merge_request",
+    "description": "Создать MR ai/42-provider-error → staging",
+    "details": "3 файла изменено, +84 −12"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "task_id": 42,
+  "version": 1,
+  "reason": "Ссылка без префикса системы.",
+  "steps": [
+    {
+      "id": "fix",
+      "type": "role",
+      "role": "go-developer",
+      "command": "fix",
+      "text": "Исправить.",
+      "refs": ["PAT-42"]
+    }
+  ]
+}
